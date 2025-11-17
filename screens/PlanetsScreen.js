@@ -1,19 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
-
 export default function PlanetsScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Planets</Text>
-      <View style={styles.center}>
-        <Text style={styles.info}>This screen will list planets</Text>
-      </View>
+      <Text style={styles.text}>Planets Screen</Text>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#ECEFF1' },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 12 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  info: { fontSize: 16, color: '#37474F' },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  text: { fontSize: 30, fontWeight: 'bold' },
 });
