@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import SearchModal from '../components/SearchModal';
 
 export default function PlanetsScreen() {
@@ -7,44 +8,59 @@ export default function PlanetsScreen() {
   const [loading, setLoading] = useState(true);
   const [searchValue, setSearchValue] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedValue, setSelectedValue] = useState('');
 
   useEffect(() => {
     fetch('https://www.swapi.tech/api/planets')
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         setPlanets(data.results);
         setLoading(false);
       });
   }, []);
 
-  const handleSubmit = () => {
-    if (!searchValue.trim()) return;
+  const handleSwipe = (itemName) => {
+    setSelectedValue(itemName);
     setModalVisible(true);
   };
 
+  const renderRightActions = () => (
+    <View style={styles.rightAction}>
+      <Text style={styles.actionText}>Swipe</Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
+      
       <TextInput
-        placeholder="Search..."
+        placeholder="Search planets..."
         value={searchValue}
         onChangeText={setSearchValue}
-        onSubmitEditing={handleSubmit}
         style={styles.input}
       />
 
       {loading ? (
         <ActivityIndicator size="large" style={{ marginTop: 40 }} />
       ) : (
-        <FlatList
-          data={planets}
-          keyExtractor={(item) => item.uid}
-          renderItem={({ item }) => <Text style={styles.item}>{item.name}</Text>}
-        />
+        <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+          {planets.map((item) => (
+            <Swipeable 
+              key={item.uid} 
+              renderRightActions={renderRightActions}
+              onSwipeableOpen={() => handleSwipe(item.name)}
+            >
+              <TouchableOpacity>
+                <Text style={styles.item}>{item.name}</Text>
+              </TouchableOpacity>
+            </Swipeable>
+          ))}
+        </ScrollView>
       )}
 
       <SearchModal
         visible={modalVisible}
-        message={`You searched for: ${searchValue}`}
+        message={`You selected: ${selectedValue}`}
         onClose={() => setModalVisible(false)}
       />
     </View>
@@ -62,8 +78,21 @@ const styles = StyleSheet.create({
   },
   item: {
     fontSize: 18,
-    padding: 10,
+    paddingVertical: 20,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderColor: '#ddd',
+    backgroundColor: '#fff',
+  },
+  rightAction: {
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    borderRadius: 6,
+  },
+  actionText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
