@@ -1,3 +1,4 @@
+import NetInfo from "@react-native-community/netinfo";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -7,37 +8,51 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import SearchModal from "../components/SearchModal";
 
-export default function FilmsScreen() {
-  const [films, setFilms] = useState([]);
+export default function SpaceshipsScreen() {
+  const [ships, setShips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   const [searchValue, setSearchValue] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedValue, setSelectedValue] = useState("");
 
   useEffect(() => {
-    fetch("https://www.swapi.tech/api/films")
-      .then((res) => res.json())
-      .then((data) => {
-        setFilms(data.result);
-        setLoading(false);
-      });
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected && state.isInternetReachable);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const handleSwipe = (title) => {
-    setSelectedValue(title);
-    setModalVisible(true);
-  };
+  useEffect(() => {
+    if (!isOnline) return;
+
+    fetch("https://www.swapi.tech/api/starships")
+      .then(res => res.json())
+      .then(data => {
+        setShips(data.results);
+        setLoading(false);
+      });
+  }, [isOnline]);
+
+  if (!isOnline) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.offlineText}>
+          Network unavailable. Please check your internet connection.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-
       {!imageLoaded && <ActivityIndicator size="large" />}
       <Image
         source={require("../assets/images/starwars-bckg.jpg")}
@@ -46,26 +61,26 @@ export default function FilmsScreen() {
       />
 
       <TextInput
-        placeholder="Search films..."
+        placeholder="Search spaceships..."
         value={searchValue}
         onChangeText={setSearchValue}
         style={styles.input}
       />
 
       {loading ? (
-        <ActivityIndicator size="large" style={{ marginTop: 20 }} />
+        <ActivityIndicator size="large" />
       ) : (
         <ScrollView>
-          {films.map((item) => (
+          {ships.map(item => (
             <Swipeable
               key={item.uid}
-              renderRightActions={() => (
-                <View style={styles.rightAction}><Text style={styles.actionText}>Swipe</Text></View>
-              )}
-              onSwipeableOpen={() => handleSwipe(item.properties.title)}
+              onSwipeableOpen={() => {
+                setSelectedValue(item.name);
+                setModalVisible(true);
+              }}
             >
               <TouchableOpacity>
-                <Text style={styles.item}>{item.properties.title}</Text>
+                <Text style={styles.item}>{item.name}</Text>
               </TouchableOpacity>
             </Swipeable>
           ))}
@@ -80,9 +95,21 @@ export default function FilmsScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12 },
+  offlineText: {
+    fontSize: 18,
+    color: "red",
+    textAlign: "center",
+    marginTop: 40,
+  },
+  image: {
+    width: "100%",
+    height: 140,
+    resizeMode: "cover",
+    borderRadius: 8,
+    marginBottom: 10,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -97,22 +124,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#ddd",
     backgroundColor: "white",
-  },
-  rightAction: {
-    backgroundColor: "#007AFF",
-    justifyContent: "center",
-    alignItems: "center",
-    width: 80,
-  },
-  actionText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  image: {
-    width: "100%",
-    height: 140,
-    resizeMode: "cover",
-    borderRadius: 8,
-    marginBottom: 10,
   },
 });

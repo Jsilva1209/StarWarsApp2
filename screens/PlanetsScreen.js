@@ -1,3 +1,4 @@
+import NetInfo from "@react-native-community/netinfo";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 import { Swipeable } from "react-native-gesture-handler";
 import SearchModal from "../components/SearchModal";
 
@@ -16,34 +18,42 @@ export default function PlanetsScreen() {
   const [planets, setPlanets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   const [searchValue, setSearchValue] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedValue, setSelectedValue] = useState("");
 
   useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected && state.isInternetReachable);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!isOnline) return;
+
     fetch("https://www.swapi.tech/api/planets")
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         setPlanets(data.results);
         setLoading(false);
       });
-  }, []);
+  }, [isOnline]);
 
-  const handleSwipe = (name) => {
-    setSelectedValue(name);
-    setModalVisible(true);
-  };
-
-  const renderRightActions = () => (
-    <View style={styles.rightAction}>
-      <Text style={styles.actionText}>Swipe</Text>
-    </View>
-  );
+  if (!isOnline) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.offlineText}>
+          Network unavailable. Please check your internet connection.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Lazy Loaded Image */}
       {!imageLoaded && <ActivityIndicator size="large" />}
       <Image
         source={require("../assets/images/starwars-bckg.jpg")}
@@ -59,14 +69,16 @@ export default function PlanetsScreen() {
       />
 
       {loading ? (
-        <ActivityIndicator size="large" style={{ marginTop: 20 }} />
+        <ActivityIndicator size="large" />
       ) : (
         <ScrollView>
-          {planets.map((item) => (
+          {planets.map(item => (
             <Swipeable
               key={item.uid}
-              renderRightActions={renderRightActions}
-              onSwipeableOpen={() => handleSwipe(item.name)}
+              onSwipeableOpen={() => {
+                setSelectedValue(item.name);
+                setModalVisible(true);
+              }}
             >
               <TouchableOpacity>
                 <Text style={styles.item}>{item.name}</Text>
@@ -84,9 +96,21 @@ export default function PlanetsScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12 },
+  offlineText: {
+    fontSize: 18,
+    color: "red",
+    textAlign: "center",
+    marginTop: 40,
+  },
+  image: {
+    width: "100%",
+    height: 140,
+    resizeMode: "cover",
+    borderRadius: 8,
+    marginBottom: 10,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -101,22 +125,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#ddd",
     backgroundColor: "white",
-  },
-  rightAction: {
-    backgroundColor: "#007AFF",
-    justifyContent: "center",
-    alignItems: "center",
-    width: 80,
-  },
-  actionText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  image: {
-    width: "100%",
-    height: 140,
-    resizeMode: "cover",
-    borderRadius: 8,
-    marginBottom: 10,
   },
 });
