@@ -1,13 +1,28 @@
-import { Button, Modal, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Button, Modal, StyleSheet, Text, View } from 'react-native';
 
 export default function SearchModal({ visible, message, onClose }) {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 1,
+      }).start();
+    } else {
+      scaleAnim.setValue(0);
+    }
+  }, [visible]);
+
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
-        <View style={styles.modalBox}>
+        <Animated.View style={[styles.modalContainer, { transform: [{ scale: scaleAnim }] }]}>
           <Text style={styles.message}>{message}</Text>
           <Button title="Close" onPress={onClose} />
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -18,14 +33,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
-  modalBox: {
+  modalContainer: {
+    backgroundColor: 'white',
     width: '80%',
-    backgroundColor: '#fff',
     padding: 20,
     borderRadius: 10,
-    elevation: 8,
+    elevation: 5,
   },
   message: {
     fontSize: 18,
