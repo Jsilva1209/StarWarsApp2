@@ -1,57 +1,86 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
-import SearchModal from '../components/SearchModal';
+import NetInfo from "@react-native-community/netinfo";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
+import SearchModal from "../components/SearchModal";
 
-export default function FilmsScreen() {
-  const [films, setFilms] = useState([]);
+export default function SpaceshipsScreen() {
+  const [ships, setShips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchValue, setSearchValue] = useState('');
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
+  const [searchValue, setSearchValue] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedValue, setSelectedValue] = useState('');
+  const [selectedValue, setSelectedValue] = useState("");
 
   useEffect(() => {
-    fetch('https://www.swapi.tech/api/films')
-      .then((res) => res.json())
-      .then((data) => {
-        setFilms(data.result);
-        setLoading(false);
-      });
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected && state.isInternetReachable);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const handleSwipe = (title) => {
-    setSelectedValue(title);
-    setModalVisible(true);
-  };
+  useEffect(() => {
+    if (!isOnline) return;
 
-  const renderRightActions = () => (
-    <View style={styles.rightAction}>
-      <Text style={styles.actionText}>Swipe</Text>
-    </View>
-  );
+    fetch("https://www.swapi.tech/api/starships")
+      .then(res => res.json())
+      .then(data => {
+        setShips(data.results);
+        setLoading(false);
+      });
+  }, [isOnline]);
+
+  if (!isOnline) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.offlineText}>
+          Network unavailable. Please check your internet connection.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      
+      {!imageLoaded && <ActivityIndicator size="large" />}
+      <Image
+        source={require("../assets/images/starwars-bckg.jpg")}
+        style={styles.image}
+        onLoad={() => setImageLoaded(true)}
+      />
+
       <TextInput
-        placeholder="Search films..."
+        placeholder="Search spaceships..."
         value={searchValue}
         onChangeText={setSearchValue}
         style={styles.input}
       />
 
       {loading ? (
-        <ActivityIndicator size="large" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" />
       ) : (
-        <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
-          {films.map((item) => (
-            <Swipeable 
+        <ScrollView>
+          {ships.map(item => (
+            <Swipeable
               key={item.uid}
-              renderRightActions={renderRightActions}
-              onSwipeableOpen={() => handleSwipe(item.properties.title)}
+              onSwipeableOpen={() => {
+                setSelectedValue(item.name);
+                setModalVisible(true);
+              }}
             >
               <TouchableOpacity>
-                <Text style={styles.item}>{item.properties.title}</Text>
+                <Text style={styles.item}>{item.name}</Text>
               </TouchableOpacity>
             </Swipeable>
           ))}
@@ -66,33 +95,34 @@ export default function FilmsScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
+  container: { flex: 1, padding: 12 },
+  offlineText: {
+    fontSize: 18,
+    color: "red",
+    textAlign: "center",
+    marginTop: 40,
+  },
+  image: {
+    width: "100%",
+    height: 140,
+    resizeMode: "cover",
+    borderRadius: 8,
+    marginBottom: 10,
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     padding: 12,
-    marginBottom: 15,
     borderRadius: 8,
+    marginBottom: 10,
   },
   item: {
     fontSize: 18,
-    paddingVertical: 20,
-    paddingHorizontal: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
-  },
-  rightAction: {
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    paddingHorizontal: 20,
-    borderRadius: 6,
-  },
-  actionText: {
-    color: 'white',
-    fontWeight: 'bold',
+    borderColor: "#ddd",
+    backgroundColor: "white",
   },
 });
